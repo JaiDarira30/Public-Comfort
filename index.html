@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Public Transport Comfort Predictor</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background for neon theme */
+            color: #e2e8f0; /* Light text for contrast */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #2d3748; /* Slightly lighter dark background for container */
+            border-radius: 1rem;
+            /* Enhanced Neon glow effect */
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4), 0 0 60px rgba(128, 0, 128, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        .card {
+            background-color: #2d3748;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            /* Enhanced Subtle neon glow for cards */
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.25);
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            border: 1px solid rgba(0, 255, 255, 0.15);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            /* Stronger glow on hover */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 35px rgba(128, 0, 128, 0.4);
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            background-color: #3f51b5; /* Darker blue for tabs */
+            color: #e0f2f7; /* Light blue text */
+            transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            border: 1px solid rgba(0, 255, 255, 0.1);
+        }
+        .tab-button.active {
+            background-color: #00bcd4; /* Cyan for active tab */
+            color: #1a202c; /* Dark text on bright tab */
+            /* Enhanced active tab glow */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.6);
+            font-weight: 600;
+        }
+        .tab-button:not(.active):hover {
+            background-color: #4fc3f7; /* Lighter blue on hover */
+            color: #1a202c;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+        }
+        .gradient-button {
+            background: linear-gradient(to right, #8e24aa, #42a5f5); /* Purple to Blue neon */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s;
+            /* Enhanced button glow */
+            box-shadow: 0 0 20px rgba(142, 36, 170, 0.6), 0 0 35px rgba(66, 165, 245, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gradient-button:hover {
+            transform: translateY(-3px);
+            /* Stronger button glow on hover */
+            box-shadow: 0 0 25px rgba(142, 36, 170, 0.8), 0 0 45px rgba(66, 165, 245, 0.7);
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-left-color: #00bcd4; /* Neon cyan */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .coming-soon-badge {
+            background-color: #ffeb3b; /* Bright yellow */
+            color: #212121; /* Dark text */
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            display: inline-block;
+            box-shadow: 0 0 8px rgba(255, 235, 59, 0.5);
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        .route-card { /* New class for bus/train route cards */
+            background-color: #3f51b5; /* Darker blue for route cards */
+            border-left: 4px solid #00e5ff; /* Bright cyan border */
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+            color: #e0f2f7;
+        }
+        .train-card { /* Existing class for live station train info */
+            background-color: #3f51b5; /* Darker blue for train cards */
+            border-left: 4px solid #00e5ff; /* Bright cyan border */
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+            color: #e0f2f7;
+        }
+        .disabled-section {
+            opacity: 0.4;
+            pointer-events: none;
+            filter: grayscale(80%); /* Visually indicate disabled */
+        }
+        /* Footer specific styles */
+        footer {
+            background-color: #1a202c; /* Same as body background */
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+        }
+        footer a {
+            color: #00bcd4; /* Neon cyan for links */
+            transition: color 0.3s ease-in-out, transform 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+            display: inline-block;
+        }
+        footer a:hover {
+            color: #e0f2f7; /* Lighter on hover */
+            transform: translateX(5px);
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.8); /* Text glow */
+        }
+        footer h3 {
+            color: #4fc3f7; /* Lighter blue for footer headings */
+            text-shadow: 0 0 5px rgba(79, 195, 247, 0.5);
+        }
+        /* Scroll to top button styles */
+        #scroll-to-top-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(to right, #00bcd4, #4fc3f7); /* Cyan to Light Blue */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 188, 212, 0.6), 0 0 25px rgba(79, 195, 247, 0.5);
+            transition: opacity 0.3s, transform 0.3s, box-shadow 0.3s;
+            opacity: 0; /* Hidden by default */
+            transform: translateY(100px); /* Off-screen by default */
+            z-index: 1000;
+        }
+        #scroll-to-top-btn.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #scroll-to-top-btn:hover {
+            box-shadow: 0 0 20px rgba(0, 188, 212, 0.8), 0 0 35px rgba(79, 195, 247, 0.7);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 sm:p-6 md:p-8">
+
+    <div class="container">
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-cyan-400 mb-2" style="text-shadow: 0 0 15px rgba(0,255,255,0.8);">Public Transport Comfort Predictor</h1>
+            <p class="text-gray-300 text-lg">Real-time comfort analysis for Indian cities</p>
+            <p class="text-gray-400 text-sm mt-1" id="last-updated">Live data from Hyderabad • Last updated: 5:13:49 PM</p>
+        </header>
+
+        <!-- City Selection Tabs -->
+        <nav class="flex justify-center space-x-4 mb-8 flex-wrap">
+            <button class="tab-button active" data-city="hyderabad">
+                <i class="fas fa-map-marker-alt mr-2"></i>Hyderabad
+            </button>
+            <button class="tab-button" data-city="vellore">
+                <i class="fas fa-map-marker-alt mr-2"></i>Vellore
+            </button>
+            <button class="tab-button" data-city="tirupati">
+                <i class="fas fa-map-marker-alt mr-2"></i>Tirupati
+            </button>
+            <button class="tab-button" data-city="tiruvannamalai">
+                <i class="fas fa-map-marker-alt mr-2"></i>Tiruvannamalai
+            </button>
+            <button class="tab-button" data-city="vijayawada">
+                <i class="fas fa-map-marker-alt mr-2"></i>Vijayawada
+            </button>
+            <!-- Chennai is now in the footer's upcoming cities list -->
+        </nav>
+
+        <!-- Refresh Live Data Button -->
+        <div class="text-center mb-8">
+            <button id="refresh-data-btn" class="gradient-button flex items-center justify-center mx-auto">
+                <i class="fas fa-sync-alt mr-2"></i> Refresh Live Data
+            </button>
+        </div>
+
+        <!-- City Info Section -->
+        <section id="city-info-section" class="mb-8 p-6 bg-blue-900 rounded-xl shadow-md flex flex-col md:flex-row items-center" style="box-shadow: 0 0 20px rgba(66, 165, 245, 0.6);">
+            <!-- Changed placeholder image to a more vibrant, abstract color -->
+            <img id="city-image" src="https://placehold.co/400x250/6A0DAD/E0BBE4?text=City+Image" alt="City Image" class="w-full md:w-1/3 rounded-lg mb-4 md:mb-0 md:mr-6 object-cover border-2 border-cyan-400">
+            <div class="flex-1">
+                <h2 id="city-name-info" class="text-3xl font-bold text-cyan-400 mb-2" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Hyderabad</h2>
+                <p id="city-description" class="text-gray-300 leading-relaxed mb-4">
+                    Hyderabad, the capital of Telangana, is a major center for the technology industry. It's known for its historic sites, including the Charminar, Golconda Fort, and the Qutb Shahi Tombs. The city is also famous for its rich cuisine, especially Hyderabadi Biryani.
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-300 text-sm">
+                    <p><i class="fas fa-ruler-combined mr-2 text-gray-400"></i>Area: <span id="city-area" class="font-semibold">--</span></p>
+                    <p><i class="fas fa-users mr-2 text-gray-400"></i>Population: <span id="city-population" class="font-semibold">--</span></p>
+                    <p><i class="fas fa-globe-americas mr-2 text-gray-400"></i>Longitude: <span id="city-longitude" class="font-semibold">--</span></p>
+                    <p><i class="fas fa-globe-americas mr-2 text-gray-400"></i>Latitude: <span id="city-latitude" class="font-semibold">--</span></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Metrics Section -->
+        <section id="dashboard-metrics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <!-- Overall Comfort Card -->
+            <div class="card flex flex-col items-center justify-center text-center bg-green-50">
+                <i class="fas fa-leaf text-green-400 text-3xl mb-2" style="text-shadow: 0 0 10px rgba(0,255,0,0.8);"></i>
+                <p class="text-gray-400 text-sm">Overall Comfort</p>
+                <p id="overall-comfort" class="text-4xl font-bold text-green-500">12%</p>
+                <div id="comfort-status" class="flex items-center mt-2 px-3 py-1 rounded-full text-sm font-semibold bg-red-800 text-red-300" style="box-shadow: 0 0 10px rgba(255,0,0,0.6);">
+                    <span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Crowded
+                </div>
+            </div>
+
+            <!-- Temperature Card -->
+            <div class="card flex flex-col items-center justify-center text-center bg-orange-50">
+                <i class="fas fa-thermometer-half text-orange-400 text-3xl mb-2" style="text-shadow: 0 0 10px rgba(255,165,0,0.8);"></i>
+                <p class="text-gray-400 text-sm">Temperature</p>
+                <p id="temperature" class="text-4xl font-bold text-orange-500">29°C</p>
+                <p id="humidity-wind" class="text-gray-400 text-xs mt-1">Humidity: 72% <br> Wind: 8 Km/h</p>
+            </div>
+
+            <!-- Air Quality Card -->
+            <div class="card flex flex-col items-center justify-center text-center bg-blue-50">
+                <i class="fas fa-wind text-blue-400 text-3xl mb-2" style="text-shadow: 0 0 10px rgba(0,0,255,0.8);"></i>
+                <p class="text-gray-400 text-sm">Air Quality</p>
+                <p id="air-quality" class="text-4xl font-bold text-blue-500">89</p>
+                <p id="air-quality-status" class="text-gray-400 text-xs mt-1">Moderate <br> Clear Sky</p>
+            </div>
+
+            <!-- Active Routes Card -->
+            <div class="card flex flex-col items-center justify-center text-center bg-purple-50">
+                <i class="fas fa-route text-purple-400 text-3xl mb-2" style="text-shadow: 0 0 10px rgba(128,0,128,0.8);"></i>
+                <p class="text-gray-400 text-sm">Active Routes</p>
+                <p id="active-routes" class="text-4xl font-bold text-purple-500">9</p>
+                <p id="route-details" class="text-gray-400 text-xs mt-1">5 Bus • 4 Train <br> Live Tracking</p>
+            </div>
+
+            <!-- Average Delay Card -->
+            <div class="card flex flex-col items-center justify-center text-center bg-yellow-50">
+                <i class="fas fa-clock text-yellow-400 text-3xl mb-2" style="text-shadow: 0 0 10px rgba(255,255,0,0.8);"></i>
+                <p class="text-gray-400 text-sm">Avg Delay</p>
+                <p id="avg-delay" class="text-4xl font-bold text-yellow-500">15 min</p>
+                <p id="delay-details" class="text-gray-400 text-xs mt-1">Real-time delays <br> Traffic: 60%</p>
+            </div>
+        </section>
+
+        <!-- Data Coming Soon Message for Dashboard -->
+        <section id="dashboard-coming-soon" class="hidden mb-8 p-6 bg-yellow-900 rounded-xl shadow-md text-center" style="box-shadow: 0 0 20px rgba(255,235,59,0.6);">
+            <h3 class="text-2xl font-bold text-yellow-300 mb-2" style="text-shadow: 0 0 10px rgba(255,255,0,0.8);">Data Coming Soon!</h3>
+            <p class="text-yellow-200">We are working hard to bring live public transport data for this city. Please check back later!</p>
+        </section>
+
+        <!-- Route Selection Tabs (Bus/Train/Stations) -->
+        <nav id="route-selection-tabs" class="flex justify-center space-x-4 mb-8 flex-wrap">
+            <button class="tab-button active" data-route-type="bus">
+                <i class="fas fa-bus mr-2"></i>Bus Routes (<span id="bus-route-count">0</span>)
+            </button>
+            <button class="tab-button" data-route-type="train">
+                <i class="fas fa-train mr-2"></i>Train Routes (<span id="train-route-count">0</span>)
+            </button>
+            <button class="tab-button" data-route-type="stations">
+                <i class="fas fa-map-pin mr-2"></i>Live Stations
+            </button>
+        </nav>
+
+        <!-- Route Cards Container (Bus/Train Routes) -->
+        <section id="route-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Route cards will be dynamically loaded here -->
+        </section>
+
+        <!-- Live Station Feature Section (Moved here and controlled by tab) -->
+        <section id="live-station-section" class="card p-6 mb-8 hidden">
+            <h2 class="text-2xl font-bold text-gray-200 mb-6 flex items-center">
+                <i class="fas fa-train text-green-400 mr-3 text-3xl" style="text-shadow: 0 0 15px rgba(0,255,0,0.8);"></i> Live Station Information
+            </h2>
+            <p class="text-gray-400 mb-6">Get real-time (simulated) train schedules and crowding data.</p>
+
+            <div class="mb-6">
+                <label for="station-select" class="block text-gray-300 font-medium mb-2">
+                    <i class="fas fa-map-pin mr-2 text-gray-400"></i>Select Station
+                </label>
+                <select id="station-select" class="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-gray-200">
+                    <option value="">Select a station</option>
+                    <option value="hyderabad-kcg">Hyderabad Deccan (KCG)</option>
+                    <option value="tirupati-tpty">Tirupati (TPTY)</option>
+                    <option value="vellore-vlr">Katpadi Jn (KPD)</option>
+                    <option value="vijayawada-bza">Vijayawada Jn (BZA)</option>
+                    <option value="tiruvannamalai-tnm">Tiruvannamalai (TNM)</option>
+                    <!-- Add more stations as needed -->
+                </select>
+            </div>
+
+            <div id="train-list" class="space-y-4">
+                <!-- Train information will be dynamically loaded here -->
+                <p class="text-gray-400 text-center" id="no-trains-message">Select a station to view live train information.</p>
+            </div>
+
+            <p class="text-sm text-gray-500 mt-6 text-center">
+                <i class="fas fa-info-circle mr-1"></i> Note: Train data and crowding levels are simulated.
+            </p>
+        </section>
+
+        <!-- Charts Section -->
+        <section id="charts-section" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- 24-Hour Comfort Prediction Chart -->
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold text-gray-200 mb-4">
+                    <i class="fas fa-chart-line mr-2 text-cyan-400" style="text-shadow: 0 0 10px rgba(0,255,255,0.8);"></i> 24-Hour Comfort Prediction
+                </h3>
+                <p class="text-gray-400 text-sm mb-4">Predicted crowd levels and comfort scores throughout the day</p>
+                <div class="chart-container">
+                    <canvas id="comfortPredictionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comfort Distribution Chart -->
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold text-gray-200 mb-4">
+                    <i class="fas fa-chart-pie mr-2 text-cyan-400" style="text-shadow: 0 0 10px rgba(0,255,255,0.8);"></i> Comfort Distribution by Transport Type
+                </h3>
+                <p class="text-gray-400 text-sm mb-4">Distribution of comfort levels across different transport modes.</p>
+                <div class="chart-container">
+                    <canvas id="comfortDistributionChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Comfort Predictor Section -->
+        <section id="ai-predictor-section" class="card p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-200 mb-6 flex items-center">
+                <i class="fas fa-brain text-fuchsia-400 mr-3 text-3xl" style="text-shadow: 0 0 15px rgba(255,0,255,0.8);"></i> AI Comfort Predictor
+            </h2>
+            <p class="text-gray-400 mb-6">Get real-time comfort predictions powered by machine learning (simulated)</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                <!-- City Dropdown -->
+                <div>
+                    <label for="predictor-city" class="block text-gray-300 font-medium mb-2">
+                        <i class="fas fa-city mr-2 text-gray-400"></i>City
+                    </label>
+                    <select id="predictor-city" class="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-gray-200">
+                        <option value="">Select city</option>
+                        <option value="hyderabad">Hyderabad</option>
+                        <option value="vellore">Vellore</option>
+                        <option value="tirupati">Tirupati</option>
+                        <option value="tiruvannamalai">Tiruvannamalai</option>
+                        <option value="vijayawada">Vijayawada</option>
+                        <!-- Coming soon cities are not selectable here for prediction -->
+                    </select>
+                </div>
+
+                <!-- Transport Mode Dropdown -->
+                <div>
+                    <label for="predictor-transport" class="block text-gray-300 font-medium mb-2">
+                        <i class="fas fa-bus mr-2 text-gray-400"></i>Transport Mode
+                    </label>
+                    <select id="predictor-transport" class="w-full p-3 border border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-gray-700 text-gray-200">
+                        <option value="">Select transport</option>
+                        <!-- Options will be dynamically loaded based on city -->
+                    </select>
+                </div>
+
+                <!-- Time Display (Auto-fetched) -->
+                <div>
+                    <label class="block text-gray-300 font-medium mb-2">
+                        <i class="fas fa-clock mr-2 text-gray-400"></i>Time
+                    </label>
+                    <div id="current-time-display" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-200">
+                        --
+                    </div>
+                </div>
+                <!-- Weather Display (Automatically Detected) -->
+                <div class="lg:col-span-1">
+                    <label class="block text-gray-300 font-medium mb-2">
+                        <i class="fas fa-cloud-sun mr-2 text-gray-400"></i>Weather
+                    </label>
+                    <div id="current-weather-display" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-200">
+                        --
+                    </div>
+                </div>
+            </div>
+
+            <button id="predict-comfort-btn" class="gradient-button w-full py-4 text-xl">
+                Predict Comfort Level
+            </button>
+
+            <!-- Prediction Result Display -->
+            <div id="prediction-result" class="mt-8 p-6 bg-blue-900 rounded-lg text-center hidden" style="box-shadow: 0 0 20px rgba(66, 165, 245, 0.6);">
+                <h3 class="text-2xl font-bold text-cyan-400 mb-2" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Predicted Comfort Level:</h3>
+                <p id="predicted-comfort-value" class="text-5xl font-extrabold text-fuchsia-400 mb-4" style="text-shadow: 0 0 20px rgba(255,0,255,1);">--</p>
+                <p id="predicted-comfort-description" class="text-xl text-gray-300">Note: This prediction is generated using pre-used simulated datasets.</p>
+            </div>
+        </section>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-300 py-10">
+        <div class="container grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Upcoming Cities Section -->
+            <div>
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Upcoming Cities</h3>
+                <ul id="upcoming-cities-footer" class="space-y-2">
+                    <!-- Dynamic content will be loaded here by JavaScript -->
+                </ul>
+            </div>
+            <!-- Metro Maps Section -->
+            <div>
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Metro Maps</h3>
+                <ul id="metro-maps-footer" class="space-y-2">
+                    <!-- Dynamic content will be loaded here by JavaScript -->
+                </ul>
+            </div>
+            <!-- Local Suburban Maps Section -->
+            <div>
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Local Suburban Maps</h3>
+                <ul id="suburban-maps-footer" class="space-y-2">
+                    <!-- Dynamic content will be loaded here by JavaScript -->
+                </ul>
+            </div>
+            <!-- Upcoming Features Section -->
+            <div>
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Upcoming Features</h3>
+                <ul id="upcoming-features-footer" class="space-y-2">
+                    <li><a href="javascript:void(0)" class="hover:text-white transition-colors transform hover:translate-x-1"><i class="fas fa-robot mr-2 text-fuchsia-400" style="text-shadow: 0 0 5px rgba(255,0,255,0.4);"></i>Real-time ML Detection (Coming Soon)</a></li>
+                    <li><a href="javascript:void(0)" class="hover:text-white transition-colors transform hover:translate-x-1"><i class="fas fa-image mr-2 text-fuchsia-400" style="text-shadow: 0 0 5px rgba(255,0,255,0.4);"></i>Image Traffic Prediction (Coming Soon)</a></li>
+                    <li><a href="javascript:void(0)" class="hover:text-white transition-colors transform hover:translate-x-1"><i class="fas fa-map-marked-alt mr-2 text-fuchsia-400" style="text-shadow: 0 0 5px rgba(255,0,255,0.4);"></i>Map-based Traffic Areas (Coming Soon)</a></li>
+                    <li><a href="javascript:void(0)" class="hover:text-white transition-colors transform hover:translate-x-1"><i class="fas fa-ellipsis-h mr-2 text-fuchsia-400" style="text-shadow: 0 0 5px rgba(255,0,255,0.4);"></i>And Much More!</a></li>
+                </ul>
+            </div>
+            <!-- Version Information -->
+            <div class="md:col-span-1 text-right md:text-left">
+                <h3 class="text-lg font-semibold text-cyan-400 mb-4" style="text-shadow: 0 0 10px rgba(0,255,255,0.6);">Version</h3>
+                <p class="text-gray-400">Version: 1.0 (test version)</p>
+            </div>
+        </div>
+        <div class="text-center text-gray-500 text-sm mt-8 border-t border-gray-700 pt-4">
+            &copy; 2025 Public Transport Comfort Predictor| All rights reserved|Made with <i class="fas fa-heart text-red-500"></i> by Jai Darira
+        </div>
+    </footer>
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top-btn" title="Go to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+
+    <!-- Chart.js CDN for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        console.log("Script started.");
+        // Simulated Live Station Data (unchanged)
+        var stationData = {
+            'hyderabad-kcg': {
+                name: "Hyderabad Deccan (KCG)",
+                trains: [
+                    {
+                        name: "Venkatadri Express",
+                        number: "12797",
+                        route: "Kacheguda (KCG) to Tirupati (TPTY)",
+                        schedule: { arrival: "06:00 AM", departure: "06:10 AM" },
+                        liveStatus: { estimatedArrival: "06:05 AM", estimatedDeparture: "06:15 AM", delay: "5 min" },
+                        occupancyPredictor: (hour) => { // Simple ML-like rule for occupancy
+                            if (hour >= 6 && hour < 9) return Math.floor(70 + Math.random() * 20); // Morning peak
+                            if (hour >= 9 && hour < 17) return Math.floor(40 + Math.random() * 20); // Day off-peak
+                            if (hour >= 17 && hour < 21) return Math.floor(80 + Math.random() * 15); // Evening peak
+                            return Math.floor(30 + Math.random() * 20); // Night off-peak
+                        }
+                    },
+                    {
+                        name: "Charminar Express",
+                        number: "12759",
+                        route: "Hyderabad (HYB) to Chennai (MAS)",
+                        schedule: { arrival: "07:30 AM", departure: "07:40 AM" },
+                        liveStatus: { estimatedArrival: "07:30 AM", estimatedDeparture: "07:40 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 6 && hour < 9) return Math.floor(65 + Math.random() * 25);
+                            if (hour >= 9 && hour < 17) return Math.floor(35 + Math.random() * 20);
+                            if (hour >= 17 && hour < 21) return Math.floor(75 + Math.random() * 15);
+                            return Math.floor(25 + Math.random() * 20);
+                        }
+                    }
+                ]
+            },
+            'tirupati-tpty': {
+                name: "Tirupati (TPTY)",
+                trains: [
+                    {
+                        name: "Venkatadri Express",
+                        number: "12798",
+                        route: "Tirupati (TPTY) to Kacheguda (KCG)",
+                        schedule: { arrival: "05:00 PM", departure: "05:10 PM" },
+                        liveStatus: { estimatedArrival: "05:15 PM", estimatedDeparture: "05:25 PM", delay: "15 min" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 6 && hour < 9) return Math.floor(50 + Math.random() * 20);
+                            if (hour >= 9 && hour < 17) return Math.floor(70 + Math.random() * 20); // Afternoon peak for return journey
+                            if (hour >= 17 && hour < 21) return Math.floor(85 + Math.random() * 10); // Evening peak
+                            return Math.floor(40 + Math.random() * 20);
+                        }
+                    },
+                    {
+                        name: "Seven Hills Express",
+                        number: "12769",
+                        route: "Tirupati (TPTY) to Secunderabad (SC)",
+                        schedule: { arrival: "06:30 PM", departure: "06:45 PM" },
+                        liveStatus: { estimatedArrival: "06:30 PM", estimatedDeparture: "06:45 PM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 6 && hour < 9) return Math.floor(45 + Math.random() * 20);
+                            if (hour >= 9 && hour < 17) return Math.floor(65 + Math.random() * 20);
+                            if (hour >= 17 && hour < 21) return Math.floor(90 + Math.random() * 10);
+                            return Math.floor(35 + Math.random() * 20);
+                        }
+                    }
+                ]
+            },
+            'vellore-vlr': { // Renamed to Katpadi Jn (KPD) in the UI
+                name: "Katpadi Jn (KPD)",
+                trains: [
+                    {
+                        name: "Yelagiri Express",
+                        number: "16089",
+                        route: "Katpadi Jn (KPD) to Chennai Central (MAS)",
+                        schedule: { arrival: "08:15 AM", departure: "08:20 AM" },
+                        liveStatus: { estimatedArrival: "08:15 AM", estimatedDeparture: "08:20 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 7 && hour < 10) return Math.floor(75 + Math.random() * 15);
+                            if (hour >= 10 && hour < 16) return Math.floor(45 + Math.random() * 20);
+                            return Math.floor(60 + Math.random() * 20);
+                        }
+                    },
+                    {
+                        name: "Saptagiri Express",
+                        number: "16057",
+                        route: "Vellore Cantt (VLR) to Tirupati (TPTY)",
+                        schedule: { arrival: "09:40 AM", departure: "09:45 AM" },
+                        liveStatus: { estimatedArrival: "09:40 AM", estimatedDeparture: "09:45 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 8 && hour < 11) return Math.floor(80 + Math.random() * 10);
+                            if (hour >= 11 && hour < 18) return Math.floor(50 + Math.random() * 20);
+                            return Math.floor(65 + Math.random() * 20);
+                        }
+                    }
+                ]
+            },
+            'vijayawada-bza': {
+                name: "Vijayawada Jn (BZA)",
+                trains: [
+                    {
+                        name: "Godavari Express",
+                        number: "12727",
+                        route: "Vijayawada (BZA) to Hyderabad (HYB)",
+                        schedule: { arrival: "03:00 PM", departure: "03:15 PM" },
+                        liveStatus: { estimatedArrival: "03:05 PM", estimatedDeparture: "03:20 PM", delay: "5 min" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 14 && hour < 17) return Math.floor(85 + Math.random() * 10);
+                            if (hour >= 17 && hour < 22) return Math.floor(70 + Math.random() * 20);
+                            return Math.floor(50 + Math.random() * 20);
+                        }
+                    },
+                    {
+                        name: "Pinakini Express",
+                        number: "12711",
+                        route: "Vijayawada (BZA) to Chennai Central (MAS)",
+                        schedule: { arrival: "06:20 AM", departure: "06:30 AM" },
+                        liveStatus: { estimatedArrival: "06:20 AM", estimatedDeparture: "06:30 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 5 && hour < 8) return Math.floor(90 + Math.random() * 10);
+                            if (hour >= 8 && hour < 12) return Math.floor(60 + Math.random() * 20);
+                            return Math.floor(40 + Math.random() * 20);
+                        }
+                    }
+                ]
+            },
+            'tiruvannamalai-tnm': {
+                name: "Tiruvannamalai (TNM)",
+                trains: [
+                    {
+                        name: "Tiruvannamalai Express",
+                        number: "16115",
+                        route: "Tiruvannamalai (TNM) to Chennai Egmore (MS)",
+                        schedule: { arrival: "07:00 AM", departure: "07:05 AM" },
+                        liveStatus: { estimatedArrival: "07:00 AM", estimatedDeparture: "07:05 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 6 && hour < 9) return Math.floor(80 + Math.random() * 15);
+                            if (hour >= 9 && hour < 17) return Math.floor(50 + Math.random() * 20);
+                            return Math.floor(65 + Math.random() * 20);
+                        }
+                    },
+                    {
+                        name: "Puducherry Express",
+                        number: "16117",
+                        route: "Tiruvannamalai (TNM) to Villupuram (VM)",
+                        schedule: { arrival: "11:30 AM", departure: "11:35 AM" },
+                        liveStatus: { estimatedArrival: "11:30 AM", estimatedDeparture: "11:35 AM", delay: "On Time" },
+                        occupancyPredictor: (hour) => {
+                            if (hour >= 10 && hour < 13) return Math.floor(70 + Math.random() * 20);
+                            return Math.floor(40 + Math.random() * 20);
+                        }
+                    }
+                ]
+            }
+        };
+        console.log("stationData defined immediately after declaration:", typeof stationData !== 'undefined');
+
+        // Simulated Data for Indian Cities
+        var cityData = {
+            hyderabad: {
+                name: "Hyderabad",
+                description: "Hyderabad, the capital of Telangana, is a major center for the technology industry. It's known for its historic sites, including the Charminar, Golconda Fort, and the Qutb Shahi Tombs. The city is also famous for its rich cuisine, especially Hyderabadi Biryani.",
+                image: "https://www.bizzbuzz.news/h-upload/2024/07/10/1925951-hyderabad-is-4th-fastest-growing-city-in-the-world.webp",
+                comingSoon: false,
+                metrics: {
+                    overallComfort: { value: 12, status: "Crowded", color: "red" },
+                    temperature: { value: 29, humidity: 72, wind: 8 },
+                    airQuality: { value: 89, status: "Moderate", sky: "Clear Sky" },
+                    activeRoutes: { value: 9, details: "5 Bus • 4 Train" }, // This will be dynamic
+                    avgDelay: { value: 15, traffic: 60 }
+                },
+                transportModes: {
+                    train: { label: "Train", comfort: { morning: 30, afternoon: 60, evening: 20, night: 70, 'late-night': 85 } },
+                    bus: { label: "Bus", comfort: { morning: 25, afternoon: 50, evening: 15, night: 65, 'late-night': 80 } },
+                    metro: { label: "Metro", comfort: {}, comingSoon: true },
+                    auto: { label: "Auto", comfort: {}, comingSoon: true }, // Added
+                    twoWheeler: { label: "2-Wheeler", comfort: {}, comingSoon: true } // Added
+                },
+                charts: {
+                    comfortPrediction: {
+                        labels: ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"],
+                        crowdData: [80, 60, 40, 70, 90, 85, 75, 50],
+                        comfortData: [60, 80, 90, 70, 50, 55, 65, 80]
+                    }
+                    ,
+                    comfortDistribution: {
+                        labels: ["Bus Routes", "Train Routes", "Metro Routes (Upcoming)"],
+                        data: [45, 35, 20]
+                    }
+                },
+                area: "650 km²",
+                population: "10.5 Million",
+                longitude: "78.4867° E",
+                latitude: "17.3850° N"
+            },
+            vellore: {
+                name: "Vellore",
+                description: "Vellore is a city in the Indian state of Tamil Nadu, known for the Vellore Fort, a massive 16th-century fort housing a temple, mosque, and church. It's also home to the renowned Christian Medical College & Hospital (CMCH).",
+                image: "https://d3sftlgbtusmnv.cloudfront.net/blog/wp-content/uploads/2024/12/Places-To-Visit-Near-Vellore-cp-840x425.jpg",
+                comingSoon: false,
+                metrics: {
+                    overallComfort: { value: 75, status: "Comfortable", color: "green" },
+                    temperature: { value: 32, humidity: 65, wind: 10 },
+                    airQuality: { value: 60, status: "Good", sky: "Sunny" },
+                    activeRoutes: { value: 6, details: "4 Bus • 2 Train" },
+                    avgDelay: { value: 5, traffic: 20 }
+                },
+                transportModes: {
+                    bus: { label: "Bus", comfort: { morning: 60, afternoon: 80, evening: 50, night: 90, 'late-night': 95 } },
+                    train: { label: "Train", comfort: { morning: 70, afternoon: 85, evening: 60, night: 92, 'late-night': 96 } },
+                    auto: { label: "Auto", comfort: {}, comingSoon: true }, // Added
+                    twoWheeler: { label: "2-Wheeler", comfort: {}, comingSoon: true } // Added
+                },
+                charts: {
+                    comfortPrediction: {
+                        labels: ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"],
+                        crowdData: [30, 20, 50, 60, 55, 40, 35, 25],
+                        comfortData: [80, 90, 70, 60, 65, 75, 80, 85]
+                    },
+                    comfortDistribution: {
+                        labels: ["Bus Routes", "Train Routes"],
+                        data: [60, 40]
+                    }
+                },
+                area: "87.92 km²",
+                population: "500,000",
+                longitude: "79.1333° E",
+                latitude: "12.9165° N"
+            },
+            tirupati: {
+                name: "Tirupati",
+                description: "Tirupati is a major pilgrimage city in the Indian state of Andhra Pradesh. It is home to the Venkateswara Temple, one of the most visited pilgrimage centers in the world, located on the Tirumala hills.",
+                image: "https://img-s-msn-com.akamaized.net/tenant/amp/entityid/AA1ukFpa.img?w=749&h=421&m=6",
+                comingSoon: false,
+                metrics: {
+                    overallComfort: { value: 45, status: "Moderate", color: "orange" },
+                    temperature: { value: 30, humidity: 70, wind: 7 },
+                    airQuality: { value: 75, status: "Moderate", sky: "Partly Cloudy" },
+                    activeRoutes: { value: 7, details: "6 Bus • 1 Train" },
+                    avgDelay: { value: 10, traffic: 40 }
+                },
+                transportModes: {
+                    bus: { label: "Bus", comfort: { morning: 40, afternoon: 70, evening: 30, night: 60, 'late-night': 75 } },
+                    train: { label: "Train", comfort: { morning: 50, afternoon: 75, evening: 40, night: 65, 'late-night': 80 } },
+                    auto: { label: "Auto", comfort: {}, comingSoon: true }, // Added
+                    twoWheeler: { label: "2-Wheeler", comfort: {}, comingSoon: true } // Added
+                },
+                charts: {
+                    comfortPrediction: {
+                        labels: ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"],
+                        crowdData: [50, 40, 60, 80, 70, 60, 50, 40],
+                        comfortData: [70, 80, 60, 40, 50, 60, 70, 80]
+                    },
+                    comfortDistribution: {
+                        labels: ["Bus Routes", "Train Routes"],
+                        data: [70, 30]
+                    }
+                },
+                area: "27.44 km²",
+                population: "460,000",
+                longitude: "79.4192° E",
+                latitude: "13.6288° N"
+            },
+            tiruvannamalai: {
+                name: "Tiruvannamalai",
+                description: "Tiruvannamalai is a spiritual town in Tamil Nadu, famous for the Annamalaiyar Temple, a large temple complex dedicated to Lord Shiva. It is also known for the Arunachala Hill, a sacred site for pilgrims.",
+                image: "https://www.omspiritualshop.com/cdn/shop/articles/Thiruvannamalai_1024x1024.jpg?v=1731580457",
+                comingSoon: false,
+                metrics: {
+                    overallComfort: { value: 80, status: "Very Comfortable", color: "green" },
+                    temperature: { value: 28, humidity: 75, wind: 5 },
+                    airQuality: { value: 50, status: "Excellent", sky: "Clear" },
+                    activeRoutes: { value: 4, details: "3 Bus • 1 Train" },
+                    avgDelay: { value: 3, traffic: 10 }
+                },
+                transportModes: {
+                    bus: { label: "Bus", comfort: { morning: 70, afternoon: 90, evening: 60, night: 95, 'late-night': 98 } },
+                    train: { label: "Train", comfort: { morning: 80, afternoon: 92, evening: 70, night: 96, 'late-night': 99 } },
+                    auto: { label: "Auto", comfort: {}, comingSoon: true }, // Added
+                    twoWheeler: { label: "2-Wheeler", comfort: {}, comingSoon: true } // Added
+                },
+                charts: {
+                    comfortPrediction: {
+                        labels: ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"],
+                        crowdData: [20, 15, 30, 40, 35, 25, 20, 15],
+                        comfortData: [90, 95, 80, 70, 75, 85, 90, 95]
+                    },
+                    comfortDistribution: {
+                        labels: ["Bus Routes", "Train Routes"],
+                        data: [75, 25]
+                    }
+                },
+                area: "16.36 km²",
+                population: "150,000",
+                longitude: "79.0747° E",
+                latitude: "12.2258° N"
+            },
+            vijayawada: {
+                name: "Vijayawada",
+                description: "Vijayawada is a city in Andhra Pradesh, located on the banks of the Krishna River. It is a major commercial and educational hub, known for the Kanaka Durga Temple and Prakasam Barrage.",
+                image: "https://i.ytimg.com/vi/_48cl14iawk/hqdefault.jpg",
+                comingSoon: false,
+                metrics: {
+                    overallComfort: { value: 60, status: "Good", color: "blue" },
+                    temperature: { value: 31, humidity: 68, wind: 9 },
+                    airQuality: { value: 65, status: "Good", sky: "Clear" },
+                    activeRoutes: { value: 8, details: "6 Bus • 2 Train" },
+                    avgDelay: { value: 8, traffic: 30 }
+                },
+                transportModes: {
+                    bus: { label: "Bus", comfort: { morning: 50, afternoon: 75, evening: 45, night: 80, 'late-night': 88 } },
+                    train: { label: "Train", comfort: { morning: 60, afternoon: 80, evening: 55, night: 85, 'late-night': 90 } },
+                    auto: { label: "Auto", comfort: {}, comingSoon: true }, // Added
+                    twoWheeler: { label: "2-Wheeler", comfort: {}, comingSoon: true } // Added
+                },
+                charts: {
+                    comfortPrediction: {
+                        labels: ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"],
+                        crowdData: [40, 30, 50, 70, 65, 55, 45, 35],
+                        comfortData: [70, 80, 60, 50, 55, 65, 75, 85]
+                    },
+                    comfortDistribution: {
+                        labels: ["Bus Routes", "Train Routes"],
+                        data: [70, 30]
+                    }
+                },
+                area: "61.88 km²",
+                population: "1.2 Million",
+                longitude: "80.6480° E",
+                latitude: "16.5062° N"
+            },
+            // --- Coming Soon Cities (now only cities, no metro maps) ---
+            chennai: {
+                name: "Chennai",
+                description: "Chennai, the capital of Tamil Nadu, is a major cultural, economic, and educational center in South India. It is known for its beautiful beaches, historic temples, and vibrant arts scene. Live data coming soon!",
+                image: "https://vj-prod-website-cms.s3.ap-southeast-1.amazonaws.com/1765681589chennai-1696645169332.jpg",
+                comingSoon: true
+            },
+            ahmedabad: {
+                name: "Ahmedabad",
+                description: "Ahmedabad, a UNESCO World Heritage City in Gujarat, is known for its rich history, architectural marvels, and textile industry. It's a blend of ancient heritage and modern development.",
+                image: "https://i.ytimg.com/vi/xdZFacSYPBE/maxresdefault.jpg",
+                comingSoon: true
+            },
+            trivandrum: {
+                name: "Trivandrum",
+                description: "Thiruvananthapuram (Trivandrum) is the capital of Kerala, known for its undulating terrain of low coastal hills and busy commercial alleys. It's famous for the Padmanabhaswamy Temple and pristine beaches.",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Padmanabhaswamy_Temple_Thiruvananthapuram.jpg/1200px-Padmanabhaswamy_Temple_Thiruvananthapuram.jpg",
+                comingSoon: true
+            },
+            bangalore: {
+                name: "Bangalore",
+                description: "Bangalore (Bengaluru), the capital of Karnataka, is India's 'Silicon Valley,' a major IT hub. It's also known for its pleasant climate, beautiful parks, and vibrant nightlife.",
+                image: "https://www.agoda.com/wp-content/uploads/2024/01/Featured-image-The-Vidhana-Soudha-in-Bangalore.jpg",
+                comingSoon: true
+            },
+            delhi: {
+                name: "Delhi",
+                description: "Delhi, India's capital territory, is a massive metropolitan area in the north of the country. It's a historic city with countless ancient sites, a rich cultural heritage, and a bustling modern life.",
+                image: "https://s7ap1.scene7.com/is/image/incredibleindia/red-fort-delhi1-attr-hero?qlt=82&ts=1742170492880",
+                comingSoon: true
+            }
+        };
+
+        // NEW: Simulated Metro Map Data
+        var metroMapData = {
+            hyderabadMetroMap: {
+                name: "Hyderabad Metro Map",
+                image: "https://www.fabhotels.com/blog/wp-content/uploads/2019/10/Blue-Line-Map1-1.jpg",
+            },
+            chennaiMetroMap: {
+                name: "Chennai Metro Map",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Chennai_transit_map_future_v1-0.pdf/page1-1200px-Chennai_transit_map_future_v1-0.pdf.jpg",
+            },
+            bangaloreMetroMap: {
+                name: "Bangalore Metro Map",
+                image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Metro_Map_2025_-_Bengaluru_City.pdf/page1-2048px-Metro_Map_2025_-_Bengaluru_City.pdf.jpg",
+            },
+            delhiMetroMap: { // Added Delhi Metro Map
+                name: "Delhi Metro Map",
+                image: "https://www.mapsofindia.com/maps/delhi/delhi-metro-map.jpg",
+            },
+            mumbaiMetroMap: { // Added Mumbai Metro Map
+                name: "Mumbai Metro Map",
+                image: "https://maps-mumbai.com/img/0/metro-map-mumbai.jpg",
+            }
+        };
+
+        // NEW: Simulated Suburban Map Data
+        var suburbanMapData = {
+            mumbaiSuburbanMap: {
+                name: "Mumbai Suburban Map",
+                image: "https://erail.in/images/net-map/mumbai-local-trains.jpg",
+            },
+            chennaiSuburbanMap: { // Added Chennai Suburban Map
+                name: "Chennai Suburban Map",
+                image: "https://www.canva.com/design/DAGsjyRa6K4/WXiITLD1xvnRoC1f5w7XFw/view?utm_content=DAGsjyRa6K4&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=hf8416fc573",
+                comingSoon: true
+            },
+            hyderabadSuburbanMap: { // Added Hyderabad Suburban Map
+                name: "Hyderabad Suburban Map",
+                image: "https://www.canva.com/design/DAGsjyRa6K4/WXiITLD1xvnRoC1f5w7XFw/view?utm_content=DAGsjyRa6K4&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=hf8416fc573",
+                comingSoon: true
+            }
+        };
+
+        // Simulated Route Data for Bus and Train
+        var routeData = {
+            hyderabad: {
+                bus: [
+                    {
+                        id: "5K/280", name: "5K/280", route: "Secunderabad → Mehdipatnam",
+                        crowd: 65, temp: 36, delay: "9m", time: "75m", fare: 25, comfort: 25
+                    },
+                    {
+                        id: "10H/300", name: "10H/300", route: "Hitec City → Charminar",
+                        crowd: 78, temp: 37, delay: "10m", time: "85m", fare: 28, comfort: 17
+                    },
+                    {
+                        id: "219/300", name: "219/300", route: "Ameerpet → Uppal",
+                        crowd: 55, temp: 35, delay: "5m", time: "60m", fare: 20, comfort: 40
+                    },
+                    {
+                        id: "120/250", name: "120/250", route: "Koti → Gachibowli",
+                        crowd: 70, temp: 38, delay: "12m", time: "90m", fare: 30, comfort: 20
+                    },
+                    {
+                        id: "47L/150", name: "47L/150", route: "Lingampally → ECIL",
+                        crowd: 40, temp: 34, delay: "2m", time: "50m", fare: 18, comfort: 60
+                    }
+                ],
+                train: [
+                    {
+                        id: "8A/532", name: "8A/532", route: "Kukatpally → LB Nagar",
+                        crowd: 63, temp: 39, delay: "1m", time: "90m", fare: 30, comfort: 34
+                    },
+                    {
+                        id: "2Z/251", name: "2Z/251", route: "Gachibowli → MGBS",
+                        crowd: 78, temp: 35, delay: "5m", time: "60m", fare: 22, comfort: 17
+                    },
+                    {
+                        id: "3B/100", name: "3B/100", route: "Secunderabad → Begumpet",
+                        crowd: 50, temp: 32, delay: "0m", time: "15m", fare: 10, comfort: 55
+                    },
+                    {
+                        id: "4C/200", name: "4C/200", route: "Nampally → Falaknuma",
+                        crowd: 68, temp: 36, delay: "3m", time: "25m", fare: 15, comfort: 30
+                    }
+                ]
+            },
+            vellore: {
+                bus: [
+                    { id: "Vlr1", name: "Vlr1", route: "Vellore Fort → VIT", crowd: 40, temp: 30, delay: "2m", time: "30m", fare: 15, comfort: 70 },
+                    { id: "Vlr2", name: "Vlr2", route: "CMC → Katpadi Jn", crowd: 50, temp: 31, delay: "5m", time: "40m", fare: 20, comfort: 60 }
+                ],
+                train: [
+                    { id: "BrindavanExp", name: "Brindavan Exp", route: "Katpadi Jn → Chennai", crowd: 60, temp: 32, delay: "10m", time: "120m", fare: 80, comfort: 45 }
+                ]
+            },
+            tirupati: {
+                bus: [
+                    { id: "Tml1", name: "Tml1", route: "Bus Stand → Tirumala", crowd: 70, temp: 28, delay: "15m", time: "60m", fare: 50, comfort: 30 },
+                    { id: "T2", name: "Tpt1", route: "Railway Station → Alipiri", crowd: 60, temp: 29, delay: "8m", time: "20m", fare: 20, comfort: 45 }
+                ],
+                train: [
+                    { id: "TT1", name: "tpt intercity", route: "Tirupati → Renigunta", crowd: 30, temp: 27, delay: "2m", time: "15m", fare: 10, comfort: 80 },
+                    { id: "TT2", name: "Sabri Exp", route: "Tirupati → Hyderbad", crowd: 80, temp: 27, delay: "25m", time: "8hrs", fare: 500, comfort: 62 }
+                ]
+            },
+            tiruvannamalai: {
+                bus: [
+                    { id: "TM1", name: "TM1", route: "Temple → Bus Stand", crowd: 30, temp: 27, delay: "1m", time: "10m", fare: 10, comfort: 85 },
+                    { id: "TM2", name: "TM2", route: "Girivalam Path → Town", crowd: 25, temp: 26, delay: "0m", time: "20m", fare: 15, comfort: 90 }
+                ],
+                train: [
+                    { id: "TMT1", name: "TMT1", route: "Tiruvannamalai → Villupuram", crowd: 40, temp: 28, delay: "5m", time: "45m", fare: 30, comfort: 70 }
+                ]
+            },
+            vijayawada: {
+                bus: [
+                    { id: "BZA1", name: "BZA1", route: "Bus Stand → Railway Station", crowd: 50, temp: 32, delay: "3m", time: "15m", fare: 10, comfort: 60 },
+                    { id: "BZA2", name: "BZA2", route: "Kankadurga Temple → Benz Circle", crowd: 65, temp: 33, delay: "7m", time: "25m", fare: 15, comfort: 40 }
+                ],
+                train: [
+                    { id: "BZAT1", name: "BZAT1", route: "Vijayawada → Guntur", crowd: 45, temp: 31, delay: "2m", time: "30m", fare: 25, comfort: 65 }
+                ]
+            }
+        };
+
+
+        var comfortPredictionChartInstance;
+        var comfortDistributionChartInstance;
+
+        // Function to update the dashboard with selected city data
+        function updateDashboard(cityId) {
+            const data = cityData[cityId];
+            if (!data) return;
+
+            // Scroll to the top of the page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Update Header with new date format
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }); // dd/mm/yyyy
+            const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }); // hh:mm:ss AM/PM
+            document.getElementById('last-updated').innerText = `Live data from ${data.name} • Last updated: ${formattedDate} & ${formattedTime}`;
+
+            // Update City Info Section
+            document.getElementById('city-image').src = data.image;
+            document.getElementById('city-name-info').innerText = data.name;
+            document.getElementById('city-description').innerText = data.description;
+            document.getElementById('city-area').innerText = data.area || '--';
+            document.getElementById('city-population').innerText = data.population || '--';
+            document.getElementById('city-longitude').innerText = data.longitude || '--';
+            document.getElementById('city-latitude').innerText = data.latitude || '--';
+
+            const dashboardMetricsSection = document.getElementById('dashboard-metrics');
+            const dashboardComingSoonMessage = document.getElementById('dashboard-coming-soon');
+            const chartsSection = document.getElementById('charts-section');
+            const aiPredictorSection = document.getElementById('ai-predictor-section');
+            const routeSelectionTabs = document.getElementById('route-selection-tabs');
+            const routeCardsContainer = document.getElementById('route-cards-container');
+            const liveStationSection = document.getElementById('live-station-section');
+            const refreshDataBtn = document.getElementById('refresh-data-btn');
+
+            if (data.comingSoon) {
+                dashboardMetricsSection.classList.add('hidden');
+                chartsSection.classList.add('hidden');
+                aiPredictorSection.classList.add('hidden'); // Hide AI predictor for coming soon cities
+                routeSelectionTabs.classList.add('hidden'); // Hide route selection tabs
+                routeCardsContainer.classList.add('hidden'); // Hide route cards
+                liveStationSection.classList.add('hidden'); // Hide live station section
+                dashboardComingSoonMessage.classList.remove('hidden');
+                refreshDataBtn.classList.add('disabled-section');
+                refreshDataBtn.disabled = true;
+
+                // Clear AI predictor dropdowns and results if a coming soon city is selected
+                predictorCitySelect.value = "";
+                predictorTransportSelect.innerHTML = '<option value="">Select transport</option>';
+                predictionResultDiv.classList.add('hidden');
+
+                // Clear live station dropdown and list
+                stationSelect.value = "";
+                trainListDiv.innerHTML = '<p class="text-gray-400 text-center" id="no-trains-message">Select a station to view live train information.</p>';
+                document.getElementById('no-trains-message').classList.remove('hidden');
+
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+            } else {
+                dashboardMetricsSection.classList.remove('hidden');
+                chartsSection.classList.remove('hidden');
+                aiPredictorSection.classList.remove('hidden'); // Show AI predictor
+                routeSelectionTabs.classList.remove('hidden'); // Show route selection tabs
+                routeCardsContainer.classList.remove('hidden'); // Show route cards (will be populated by activateRouteTab)
+                dashboardComingSoonMessage.classList.add('hidden');
+                refreshDataBtn.classList.remove('disabled-section');
+                refreshDataBtn.disabled = false;
+
+                // Update Metrics Cards
+                const overallComfortElement = document.getElementById('overall-comfort');
+                const comfortStatusElement = document.getElementById('comfort-status');
+                overallComfortElement.innerText = `${data.metrics.overallComfort.value}%`;
+                comfortStatusElement.innerHTML = `<span class="w-2 h-2 rounded-full bg-${data.metrics.overallComfort.color}-500 mr-2"></span> ${data.metrics.overallComfort.status}`;
+                comfortStatusElement.className = `flex items-center mt-2 px-3 py-1 rounded-full text-sm font-semibold bg-${data.metrics.overallComfort.color}-800 text-${data.metrics.overallComfort.color}-300` + (data.metrics.overallComfort.color === 'red' ? ' shadow-red-500/50' : '');
+                if (data.metrics.overallComfort.color === 'red') {
+                    comfortStatusElement.style.boxShadow = '0 0 10px rgba(255,0,0,0.6)';
+                } else if (data.metrics.overallComfort.color === 'green') {
+                    comfortStatusElement.style.boxShadow = '0 0 10px rgba(0,255,0,0.6)';
+                } else if (data.metrics.overallComfort.color === 'orange') {
+                    comfortStatusElement.style.boxShadow = '0 0 10px rgba(255,165,0,0.6)';
+                } else if (data.metrics.overallComfort.color === 'blue') {
+                    comfortStatusElement.style.boxShadow = '0 0 10px rgba(0,0,255,0.6)';
+                }
+
+                document.getElementById('temperature').innerText = `${data.metrics.temperature.value}°C`;
+                document.getElementById('humidity-wind').innerText = `Humidity: ${data.metrics.temperature.humidity}% \n Wind: ${data.metrics.temperature.wind} Km/h`;
+                document.getElementById('air-quality').innerText = data.metrics.airQuality.value;
+                document.getElementById('air-quality-status').innerText = `${data.metrics.airQuality.status} \n ${data.metrics.airQuality.sky}`;
+
+                // Dynamically update active routes count
+                const busCount = routeData[cityId]?.bus?.length || 0;
+                const trainCount = routeData[cityId]?.train?.length || 0;
+                document.getElementById('active-routes').innerText = busCount + trainCount;
+                document.getElementById('route-details').innerText = `${busCount} Bus • ${trainCount} Train \n Live Tracking`;
+                document.getElementById('bus-route-count').innerText = busCount;
+                document.getElementById('train-route-count').innerText = trainCount;
+
+
+                document.getElementById('avg-delay').innerText = `${data.metrics.avgDelay.value} min`;
+                document.getElementById('delay-details').innerText = `Real-time delays \n Traffic: ${data.metrics.avgDelay.traffic}%`;
+
+                // Update Charts
+                updateComfortPredictionChart(data.charts.comfortPrediction);
+                updateComfortDistributionChart(data.charts.comfortDistribution);
+
+                // Default to Bus Routes tab when a new city is selected
+                activateRouteTab('bus');
+            }
+        }
+
+        // Function to initialize/update 24-Hour Comfort Prediction Chart
+        function updateComfortPredictionChart(chartData) {
+            const ctx = document.getElementById('comfortPredictionChart').getContext('2d');
+
+            if (comfortPredictionChartInstance) {
+                comfortPredictionChartInstance.destroy(); // Destroy existing chart instance
+            }
+
+            comfortPredictionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Crowd Level',
+                            data: chartData.crowdData,
+                            borderColor: '#ef4444', // Red 500
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#ef4444'
+                        },
+                        {
+                            label: 'Comfort Score',
+                            data: chartData.comfortData,
+                            borderColor: '#22c55e', // Green 500
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#22c55e'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e2e8f0' // Light text for legend
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#2d3748', // Dark tooltip background
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#00bcd4',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time of Day',
+                                color: '#a0aec0' // Gray text for axis title
+                            },
+                            ticks: {
+                                color: '#a0aec0' // Gray text for axis ticks
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)' // Subtle grid lines
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Score (%)',
+                                color: '#a0aec0'
+                            },
+                            ticks: {
+                                color: '#a0aec0'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to initialize/update Comfort Distribution Chart
+        function updateComfortDistributionChart(chartData) {
+            const ctx = document.getElementById('comfortDistributionChart').getContext('2d');
+
+            if (comfortDistributionChartInstance) {
+                comfortDistributionChartInstance.destroy(); // Destroy existing chart instance
+            }
+
+            comfortDistributionChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        data: chartData.data,
+                        backgroundColor: [
+                            '#3b82f6',  // Blue for Bus
+                            '#ef4444', // Red for Train
+                            '#a855f7' // Purple for Metro (Upcoming)
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#e2e8f0' // Light text for legend
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            },
+                            backgroundColor: '#2d3748', // Dark tooltip background
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#00bcd4',
+                            borderWidth: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        // Event Listeners for City Tabs
+        document.querySelectorAll('.tab-button[data-city]').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button[data-city]').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                updateDashboard(button.dataset.city);
+            });
+        });
+
+        // Event Listeners for Route Type Tabs (Bus/Train/Stations)
+        document.querySelectorAll('#route-selection-tabs .tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                activateRouteTab(button.dataset.routeType);
+            });
+        });
+
+        // Function to activate a specific route tab and display its content
+        function activateRouteTab(tabType) {
+            // Remove active class from all route type buttons
+            document.querySelectorAll('#route-selection-tabs .tab-button').forEach(btn => btn.classList.remove('active'));
+
+            // Add active class to the clicked button
+            document.querySelector(`#route-selection-tabs .tab-button[data-route-type="${tabType}"]`).classList.add('active');
+
+            const currentCityId = document.querySelector('.tab-button[data-city].active').dataset.city;
+            const container = document.getElementById('route-cards-container');
+            const liveStationSection = document.getElementById('live-station-section');
+
+            container.innerHTML = ''; // Clear previous route cards
+            liveStationSection.classList.add('hidden'); // Hide live station section by default
+
+            if (tabType === 'bus') {
+                container.classList.remove('hidden');
+                renderRouteCards(currentCityId, 'bus');
+            } else if (tabType === 'train') {
+                container.classList.remove('hidden');
+                renderRouteCards(currentCityId, 'train');
+            } else if (tabType === 'stations') {
+                container.classList.add('hidden'); // Hide route cards container
+                liveStationSection.classList.remove('hidden'); // Show live station section
+                updateLiveStation(document.getElementById('station-select').value); // Re-render live station data
+            }
+        }
+
+        // Function to render bus or train route cards
+        function renderRouteCards(cityId, type) {
+            const container = document.getElementById('route-cards-container');
+            container.innerHTML = ''; // Clear previous cards
+
+            const routes = routeData[cityId]?.[type] || [];
+            if (routes.length === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-center col-span-full">No ${type} routes available for this city.</p>`;
+                return;
+            }
+
+            routes.forEach(route => {
+                const comfortColor = route.comfort >= 60 ? 'text-green-400' : (route.comfort >= 30 ? 'text-orange-400' : 'text-red-400');
+                const crowdStatus = route.crowd >= 70 ? 'Crowded' : (route.crowd >= 40 ? 'Moderate' : 'Light');
+                const crowdBgColor = route.crowd >= 70 ? 'bg-red-800 text-red-300' : (route.crowd >= 40 ? 'bg-orange-800 text-orange-300' : 'bg-green-800 text-green-300');
+                // Define crowdColor based on crowd percentage
+                const crowdColor = route.crowd >= 70 ? 'text-red-400' : (route.crowd >= 40 ? 'text-orange-400' : 'text-green-400');
+
+
+                const card = document.createElement('div');
+                card.className = 'route-card flex flex-col justify-between';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold text-gray-100">${route.name}</h3>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${crowdBgColor}">
+                            ${crowdStatus}
+                        </span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-2">${route.route}</p>
+                    <div class="grid grid-cols-2 gap-2 text-sm text-gray-300">
+                        <p>Crowd: <span class="font-bold ${crowdColor}">${route.crowd}%</span></p>
+                        <p>Temp: <span class="font-bold">${route.temp}°C</span></p>
+                        <p>Delay: <span class="font-bold">${route.delay}</span></p>
+                        <p>Time: <span class="font-bold">${route.time}</span></p>
+                        <p class="col-span-2 text-lg font-bold text-cyan-400">₹${route.fare} <span class="text-sm font-normal text-gray-400"> • Comfort: <span class="${comfortColor}">${route.comfort}%</span></span></p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+
+        // Refresh Live Data Button Handler
+        document.getElementById('refresh-data-btn').addEventListener('click', () => {
+            const currentCity = document.querySelector('.tab-button[data-city].active').dataset.city;
+            if (!cityData[currentCity].comingSoon) {
+                document.getElementById('refresh-data-btn').innerHTML = '<span class="loading-spinner mr-2"></span> Refreshing...';
+                setTimeout(() => {
+                    updateDashboard(currentCity);
+                    document.getElementById('refresh-data-btn').innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Refresh Live Data';
+                }, 1500);
+            }
+        });
+
+        // AI Predictor Logic
+        const predictorCitySelect = document.getElementById('predictor-city');
+        const predictorTransportSelect = document.getElementById('predictor-transport');
+        const predictComfortBtn = document.getElementById('predict-comfort-btn');
+        const predictionResultDiv = document.getElementById('prediction-result');
+        const predictedComfortValue = document.getElementById('predicted-comfort-value');
+        const predictedComfortDescription = document.getElementById('predicted-comfort-description');
+        const currentTimeDisplay = document.getElementById('current-time-display');
+        const currentWeatherDisplay = document.getElementById('current-weather-display');
+
+        // Function to determine the time category based on current hour
+        function getCurrentTimeCategory() {
+            const hour = new Date().getHours();
+            if (hour >= 6 && hour < 10) return { key: 'morning', label: 'Morning (6 AM - 10 AM)' };
+            if (hour >= 10 && hour < 15) return { key: 'afternoon', label: 'Afternoon (10 AM - 3 PM)' };
+            if (hour >= 15 && hour < 19) return { key: 'evening', label: 'Evening (3 PM - 7 PM)' };
+            if (hour >= 19 && hour <= 23) return { key: 'night', label: 'Night (7 PM - 12 AM)' };
+            return { key: 'late-night', label: 'Late Night (12 AM - 6 AM)' };
+        }
+
+        // Function to automatically determine simulated weather based on current time
+        function getAutoSimulatedWeather() {
+            const hour = new Date().getHours();
+            if (hour >= 6 && hour < 18) {
+                return { type: 'clear', label: 'Clear Sky' };
+            } else if (hour >= 18 && hour < 22) {
+                return { type: 'cloudy', label: 'Partly Cloudy' };
+            } else {
+                const rand = Math.random();
+                if (rand < 0.2) return { type: 'rainy', label: 'Rainy' };
+                if (rand < 0.4) return { type: 'foggy', label: 'Foggy' };
+                return { type: 'clear', label: 'Clear Night' };
+            }
+        }
+
+        // Update the displayed current time and weather
+        function updateCurrentTimeAndWeatherDisplay() {
+            currentTimeDisplay.innerText = getCurrentTimeCategory().label;
+            currentWeatherDisplay.innerText = getAutoSimulatedWeather().label;
+        }
+
+        // Populate transport modes based on selected city
+        predictorCitySelect.addEventListener('change', () => {
+            const selectedCity = predictorCitySelect.value;
+            predictorTransportSelect.innerHTML = '<option value="">Select transport</option>';
+
+            if (selectedCity && cityData[selectedCity] && !cityData[selectedCity].comingSoon) {
+                const modes = cityData[selectedCity].transportModes;
+                for (const key in modes) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.innerText = modes[key].label;
+                    if (modes[key].comingSoon) {
+                        option.disabled = true;
+                        option.innerText += ' (Coming Soon)';
+                    }
+                    predictorTransportSelect.appendChild(option);
+                }
+            }
+        });
+
+        // Function to get description based on comfort score
+        function getComfortDescription(score) {
+            if (score >= 80) {
+                return "Very Comfortable: Expect a smooth and pleasant journey.";
+            } else if (score >= 60) {
+                return "Comfortable: Generally good, with minor crowd or delays possible.";
+            } else if (score >= 40) {
+                return "Moderate Comfort: Expect some crowds or minor inconveniences.";
+            } else if (score >= 20) {
+                return "Low Comfort: Likely to be crowded or experience significant delays.";
+            } else {
+                return "Very Low Comfort: Expect heavy crowds, significant delays, or discomfort.";
+            }
+        }
+
+        // Simulated prediction logic (no ML integration for now)
+        predictComfortBtn.addEventListener('click', () => {
+            const city = predictorCitySelect.value;
+            const transport = predictorTransportSelect.value;
+            const weather = getAutoSimulatedWeather().type;
+            const timeCategory = getCurrentTimeCategory();
+            const time = timeCategory.key;
+
+            if (!city || !transport) {
+                predictionResultDiv.classList.remove('hidden');
+                predictionResultDiv.className = 'mt-8 p-6 bg-red-800 rounded-lg text-center text-red-300';
+                predictionResultDiv.style.boxShadow = '0 0 15px rgba(255,0,0,0.4)';
+                predictedComfortValue.innerText = 'Error';
+                predictedComfortDescription.innerText = 'Please select City and Transport Mode to get a prediction.';
+                return;
+            }
+
+            predictComfortBtn.innerHTML = '<span class="loading-spinner mr-2"></span> Predicting...';
+            predictComfortBtn.disabled = true;
+
+            let comfortScore = 0;
+            let description = "";
+
+            if (cityData[city] && cityData[city].transportModes[transport] && cityData[city].transportModes[transport].comfort) {
+                const modeComfort = cityData[city].transportModes[transport].comfort;
+                comfortScore = modeComfort[time] || 50;
+
+                if (weather === 'rainy' || weather === 'foggy') {
+                    comfortScore = Math.max(0, comfortScore - 15);
+                } else if (weather === 'clear') {
+                    comfortScore = Math.min(100, comfortScore + 5);
+                }
+
+                description = getComfortDescription(comfortScore);
+
+            } else {
+                comfortScore = 0;
+                description = "Prediction not available for this combination.";
+            }
+
+            setTimeout(() => {
+                predictionResultDiv.classList.remove('hidden');
+                predictionResultDiv.className = 'mt-8 p-6 bg-blue-900 rounded-lg text-center';
+                predictionResultDiv.style.boxShadow = '0 0 15px rgba(66, 165, 245, 0.4)';
+                predictedComfortValue.innerText = `${comfortScore}%`;
+                predictedComfortDescription.innerText = description;
+
+                predictComfortBtn.innerHTML = 'Predict Comfort Level';
+                predictComfortBtn.disabled = false;
+            }, 1000);
+        });
+
+        // Live Station Logic
+        const stationSelect = document.getElementById('station-select');
+        const trainListDiv = document.getElementById('train-list');
+        const noTrainsMessage = document.getElementById('no-trains-message');
+
+        stationSelect.addEventListener('change', () => {
+            const selectedStationId = stationSelect.value;
+            updateLiveStation(selectedStationId);
+        });
+
+        function updateLiveStation(stationId) {
+            console.log("updateLiveStation called with stationId:", stationId);
+            console.log("Type of stationData:", typeof stationData);
+            // console.log("stationData content (if defined):", stationData); // This will error if not defined
+
+            trainListDiv.innerHTML = '';
+            noTrainsMessage.classList.add('hidden');
+
+            const data = stationData[stationId];
+            if (!data || !data.trains || data.trains.length === 0) {
+                noTrainsMessage.classList.remove('hidden');
+                noTrainsMessage.innerText = "No live train information available for this station.";
+                return;
+            }
+
+            const currentHour = new Date().getHours();
+
+            data.trains.forEach(train => {
+                const occupancy = train.occupancyPredictor(currentHour);
+                const occupancyColor = occupancy >= 70 ? 'text-red-400' : (occupancy >= 40 ? 'text-orange-400' : 'text-green-400');
+                const occupancyStatus = occupancy >= 70 ? 'High Crowding' : (occupancy >= 40 ? 'Moderate Crowding' : 'Low Crowding / Easy Travel');
+
+                const trainCard = document.createElement('div');
+                trainCard.className = 'train-card flex flex-col sm:flex-row justify-between items-start sm:items-center';
+                trainCard.innerHTML = `
+                    <div class="mb-2 sm:mb-0">
+                        <h3 class="text-lg font-semibold text-gray-100">${train.name} <span class="text-gray-400 text-sm font-normal">(${train.number})</span></h3>
+                        <p class="text-gray-400 text-sm">${train.route}</p>
+                    </div>
+                    <div class="text-sm text-gray-300 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                        <p><i class="far fa-clock mr-1 text-gray-400"></i> Scheduled: ${train.schedule.arrival} / ${train.schedule.departure}</p>
+                        <p class="mt-1 sm:mt-0"><i class="fas fa-clock mr-1 text-cyan-400"></i> Est. Live: ${train.liveStatus.estimatedArrival} / ${train.liveStatus.estimatedDeparture} <span class="font-medium text-red-400">${train.liveStatus.delay !== "On Time" ? `(${train.liveStatus.delay} Delay)` : ''}</span></p>
+                        <p class="mt-1 sm:mt-0"><i class="fas fa-users mr-1 text-gray-400"></i> Crowding: <span class="font-bold ${occupancyColor}">${occupancy}% (${occupancyStatus})</span></p>
+                    </div>
+                `;
+                trainListDiv.appendChild(trainCard);
+            });
+        }
+
+        // Function to populate upcoming cities in the footer
+        function populateFooterUpcomingCities() {
+            const upcomingCitiesList = document.getElementById('upcoming-cities-footer');
+            upcomingCitiesList.innerHTML = '';
+
+            for (const cityId in cityData) {
+                if (cityData[cityId].comingSoon) {
+                    const listItem = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = "javascript:void(0)";
+                    link.className = "hover:text-white transition-colors transform hover:translate-x-1";
+                    link.dataset.city = cityId;
+
+                    const icon = document.createElement('i');
+                    icon.className = `fas fa-map-marker-alt mr-2 text-fuchsia-400`;
+                    icon.style.textShadow = '0 0 5px rgba(255,0,255,0.4)';
+
+                    link.appendChild(icon);
+                    link.appendChild(document.createTextNode(`${cityData[cityId].name} (Upcoming)`));
+
+                    link.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        updateDashboard(cityId);
+                        document.querySelectorAll('.tab-button[data-city]').forEach(btn => {
+                            if (btn.dataset.city === cityId) {
+                                btn.click();
+                            }
+                        });
+                    });
+
+                    listItem.appendChild(link);
+                    upcomingCitiesList.appendChild(listItem);
+                }
+            }
+        }
+
+        // NEW: Function to populate metro maps in the footer
+        function populateFooterMetroMaps() {
+            const metroMapsList = document.getElementById('metro-maps-footer');
+            metroMapsList.innerHTML = '';
+
+            for (const mapId in metroMapData) {
+                const mapInfo = metroMapData[mapId];
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                // Open the image directly in a new tab
+                link.href = mapInfo.image;
+                link.target = "_blank"; // Open in new tab
+                link.rel = "noopener noreferrer"; // Security best practice for target="_blank"
+                link.className = "hover:text-white transition-colors transform hover:translate-x-1";
+
+                const icon = document.createElement('i');
+                icon.className = `fas fa-map mr-2 text-fuchsia-400`;
+                icon.style.textShadow = '0 0 5px rgba(255,0,255,0.4)';
+
+                link.appendChild(icon);
+                link.appendChild(document.createTextNode(`${mapInfo.name}`)); // Removed "(Upcoming)"
+
+                listItem.appendChild(link);
+                metroMapsList.appendChild(listItem);
+            }
+        }
+
+        // NEW: Function to populate suburban maps in the footer
+        function populateFooterSuburbanMaps() {
+            const suburbanMapsList = document.getElementById('suburban-maps-footer');
+            suburbanMapsList.innerHTML = '';
+
+            for (const mapId in suburbanMapData) {
+                const mapInfo = suburbanMapData[mapId];
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = mapInfo.image;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.className = "hover:text-white transition-colors transform hover:translate-x-1";
+
+                const icon = document.createElement('i');
+                icon.className = `fas fa-map-marked-alt mr-2 text-fuchsia-400`; // Using a different icon for suburban maps
+                icon.style.textShadow = '0 0 5px rgba(255,0,255,0.4)';
+
+                link.appendChild(icon);
+                link.appendChild(document.createTextNode(`${mapInfo.name}`));
+                if (mapInfo.comingSoon) { // Add " (Coming Soon)" if applicable
+                    link.appendChild(document.createTextNode(' (Coming Soon)'));
+                }
+
+                listItem.appendChild(link);
+                suburbanMapsList.appendChild(listItem);
+            }
+        }
+        
+        // Scroll-to-Top Button Logic
+        const scrollToTopBtn = document.getElementById('scroll-to-top-btn');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) { // Show button after scrolling 300px down
+                scrollToTopBtn.classList.add('show');
+            } else {
+                scrollToTopBtn.classList.remove('show');
+            }
+        });
+
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth' // Smooth scroll animation
+            });
+        });
+
+
+
+        // Initial load: Display Hyderabad data by default and update current time
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDashboard('hyderabad');
+            updateCurrentTimeAndWeatherDisplay();
+            populateFooterUpcomingCities();
+            populateFooterMetroMaps(); // Call the new function to populate metro maps
+            populateFooterSuburbanMaps(); // Call the new function to populate suburban maps
+        });
+    </script>
+</body>
+</html>
